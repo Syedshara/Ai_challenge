@@ -1,0 +1,88 @@
+[
+  {
+    "query_id": "case_001",
+    "query": "SELECT * FROM policy_data",
+    "metrics": [
+      {"timestamp": "2025-01-01T00:00:00Z", "latency_ms": 2469000, "rows_scanned": 50000000},
+      {"timestamp": "2025-01-01T01:00:00Z", "latency_ms": 2510000, "rows_scanned": 50000000},
+      {"timestamp": "2025-01-01T02:00:00Z", "latency_ms": 2480000, "rows_scanned": 50000000}
+    ]
+  },
+  {
+    "query_id": "case_004",
+    "query": "SELECT * FROM config_table WHERE key = ?",
+    "metrics": [
+      {"timestamp": "2025-01-01T00:00:00Z", "latency_ms": 50, "rows_scanned": 1},
+      {"timestamp": "2025-01-01T00:01:00Z", "latency_ms": 48, "rows_scanned": 1},
+      {"timestamp": "2025-01-01T00:02:00Z", "latency_ms": 52, "rows_scanned": 1},
+      {"timestamp": "2025-01-01T00:03:00Z", "latency_ms": 49, "rows_scanned": 1},
+      {"timestamp": "2025-01-01T00:04:00Z", "latency_ms": 51, "rows_scanned": 1},
+      {"timestamp": "2025-01-01T00:05:00Z", "latency_ms": 50, "rows_scanned": 1},
+      {"timestamp": "2025-01-01T00:06:00Z", "latency_ms": 47, "rows_scanned": 1},
+      {"timestamp": "2025-01-01T00:07:00Z", "latency_ms": 53, "rows_scanned": 1}
+    ]
+  },
+  {
+    "query_id": "case_008",
+    "query": "SELECT value FROM config WHERE key = 'rate_engine_config'",
+    "metrics": [
+      {"timestamp": "2025-01-01T00:00:00Z", "latency_ms": 20, "rows_scanned": 1},
+      {"timestamp": "2025-01-01T00:00:01Z", "latency_ms": 19, "rows_scanned": 1},
+      {"timestamp": "2025-01-01T00:00:02Z", "latency_ms": 21, "rows_scanned": 1},
+      {"timestamp": "2025-01-01T00:00:03Z", "latency_ms": 20, "rows_scanned": 1},
+      {"timestamp": "2025-01-01T00:00:04Z", "latency_ms": 18, "rows_scanned": 1}
+    ]
+  },
+  {
+    "query_id": "case_009",
+    "query": "UPDATE policy_data SET status = 'EXPIRED' WHERE created_date < '2020-01-01' AND status = 'ACTIVE'",
+    "metrics": [
+      {"timestamp": "2025-01-01T02:00:00Z", "latency_ms": 310000, "rows_scanned": 50000000},
+      {"timestamp": "2025-01-02T02:00:00Z", "latency_ms": 295000, "rows_scanned": 50000000},
+      {"timestamp": "2025-01-03T02:00:00Z", "latency_ms": 318000, "rows_scanned": 50000000}
+    ]
+  },
+  {
+    "query_id": "case_010",
+    "query": "SELECT policy_id, premium_amount, state, status FROM policy_data WHERE status = 'ACTIVE' LIMIT 100",
+    "metrics": [
+      {"timestamp": "2025-01-01T08:00:00Z", "latency_ms": 980,  "rows_scanned": 100},
+      {"timestamp": "2025-01-01T09:00:00Z", "latency_ms": 1020, "rows_scanned": 100},
+      {"timestamp": "2025-01-01T10:00:00Z", "latency_ms": 990,  "rows_scanned": 100},
+      {"timestamp": "2025-01-01T11:00:00Z", "latency_ms": 50000,"rows_scanned": 50000000},
+      {"timestamp": "2025-01-01T12:00:00Z", "latency_ms": 48000,"rows_scanned": 50000000},
+      {"timestamp": "2025-01-01T13:00:00Z", "latency_ms": 1010, "rows_scanned": 100},
+      {"timestamp": "2025-01-01T14:00:00Z", "latency_ms": 970,  "rows_scanned": 100},
+      {"timestamp": "2025-01-01T15:00:00Z", "latency_ms": 1005, "rows_scanned": 100},
+      {"timestamp": "2025-01-01T16:00:00Z", "latency_ms": 995,  "rows_scanned": 100},
+      {"timestamp": "2025-01-01T17:00:00Z", "latency_ms": 985,  "rows_scanned": 100},
+      {"timestamp": "2025-01-01T18:00:00Z", "latency_ms": 1015, "rows_scanned": 100},
+      {"timestamp": "2025-01-01T19:00:00Z", "latency_ms": 960,  "rows_scanned": 100},
+      {"timestamp": "2025-01-01T20:00:00Z", "latency_ms": 1030, "rows_scanned": 100},
+      {"timestamp": "2025-01-01T21:00:00Z", "latency_ms": 975,  "rows_scanned": 100},
+      {"timestamp": "2025-01-01T22:00:00Z", "latency_ms": 1000, "rows_scanned": 100},
+      {"timestamp": "2025-01-01T23:00:00Z", "latency_ms": 990,  "rows_scanned": 100}
+    ]
+  },
+  {
+    "query_id": "case_002",
+    "query": "SELECT * FROM policy_data WHERE JSON_EXTRACT(data, '$.policy.state') = 'CA'",
+    "description": "JSON filter query — gradual degradation then recovery after index",
+    "metrics": [
+      {"timestamp": "2025-01-01T00:00:00Z", "latency_ms": 25000, "rows_scanned": 50000000},
+      {"timestamp": "2025-01-01T01:00:00Z", "latency_ms": 25500, "rows_scanned": 50000000},
+      {"timestamp": "2025-01-01T02:00:00Z", "latency_ms": 26200, "rows_scanned": 50000000},
+      {"timestamp": "2025-01-01T03:00:00Z", "latency_ms": 26800, "rows_scanned": 50000000},
+      {"timestamp": "2025-01-01T04:00:00Z", "latency_ms": 27100, "rows_scanned": 50000000},
+      {"timestamp": "2025-01-01T05:00:00Z", "latency_ms": 27600, "rows_scanned": 50000000},
+      {"timestamp": "2025-01-01T06:00:00Z", "latency_ms": 28500, "rows_scanned": 50000000},
+      {"timestamp": "2025-01-01T07:00:00Z", "latency_ms": 29200, "rows_scanned": 50000000},
+      {"timestamp": "2025-01-01T08:00:00Z", "latency_ms": 30100, "rows_scanned": 50000000},
+      {"timestamp": "2025-01-01T09:00:00Z", "latency_ms": 31000, "rows_scanned": 50000000},
+      {"timestamp": "2025-01-01T10:00:00Z", "latency_ms": 32000, "rows_scanned": 50000000},
+      {"timestamp": "2025-01-01T11:00:00Z", "latency_ms": 120, "rows_scanned": 45000},
+      {"timestamp": "2025-01-01T12:00:00Z", "latency_ms": 115, "rows_scanned": 45000},
+      {"timestamp": "2025-01-01T13:00:00Z", "latency_ms": 118, "rows_scanned": 45000}
+    ]
+  }
+]

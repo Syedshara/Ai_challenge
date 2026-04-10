@@ -1,0 +1,29 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: pas_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pw
+      MYSQL_USER: monitor
+      MYSQL_PASSWORD: monitor_pw
+      MYSQL_DATABASE: employees
+    ports:
+      - "3307:3306"
+    volumes:
+      - pas_mysql_data:/var/lib/mysql
+      - ./docker/initdb:/docker-entrypoint-initdb.d
+    command: >
+      --innodb-buffer-pool-size=512M
+      --slow-query-log=ON
+      --slow-query-log-file=/var/log/mysql/slow.log
+      --long-query-time=0.5
+      --log-output=FILE
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-umonitor", "-pmonitor_pw"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  pas_mysql_data:

@@ -1,0 +1,132 @@
+[
+  {
+    "id": "fb_7d21c0",
+    "timestamp": "2026-04-09T13:57:35.062441",
+    "query": "test",
+    "case_retrieved": null,
+    "ab_variant": "A",
+    "suggestion_given": "",
+    "feedback": "positive",
+    "user_note": null
+  },
+  {
+    "id": "fb_2172f0",
+    "timestamp": "2026-04-09T14:07:28.391578",
+    "query": "api test query",
+    "case_retrieved": "case_001",
+    "ab_variant": "A",
+    "suggestion_given": "add index",
+    "feedback": "positive",
+    "user_note": null
+  },
+  {
+    "id": "fb_cae07d",
+    "timestamp": "2026-04-09T14:08:01.073325",
+    "query": "api test query",
+    "case_retrieved": "case_001",
+    "ab_variant": "A",
+    "suggestion_given": "add index",
+    "feedback": "positive",
+    "user_note": null
+  },
+  {
+    "id": "fb_dcf34f",
+    "timestamp": "2026-04-09T14:09:01.945135",
+    "query": "api test query",
+    "case_retrieved": "case_001",
+    "ab_variant": "A",
+    "suggestion_given": "add index",
+    "feedback": "positive",
+    "user_note": null
+  },
+  {
+    "id": "fb_8ab096",
+    "timestamp": "2026-04-09T14:21:22.362100",
+    "query": "api test query",
+    "case_retrieved": "case_001",
+    "ab_variant": "A",
+    "suggestion_given": "add index",
+    "feedback": "positive",
+    "user_note": null
+  },
+  {
+    "id": "fb_3a57f9",
+    "timestamp": "2026-04-09T14:46:24.356720",
+    "query": "api test query",
+    "case_retrieved": "case_001",
+    "ab_variant": "A",
+    "suggestion_given": "add index",
+    "feedback": "positive",
+    "user_note": null
+  },
+  {
+    "id": "fb_066a16",
+    "timestamp": "2026-04-09T15:52:37.764978",
+    "query": "api test query",
+    "case_retrieved": "case_001",
+    "ab_variant": "A",
+    "suggestion_given": "add index",
+    "feedback": "positive",
+    "user_note": null
+  },
+  {
+    "id": "fb_8968bd",
+    "timestamp": "2026-04-09T15:55:13.071433",
+    "query": "api test query",
+    "case_retrieved": "case_001",
+    "ab_variant": "A",
+    "suggestion_given": "add index",
+    "feedback": "positive",
+    "user_note": null
+  },
+  {
+    "id": "fb_f919e2",
+    "timestamp": "2026-04-09T15:58:35.360812",
+    "query": "api test query",
+    "case_retrieved": "case_001",
+    "ab_variant": "A",
+    "suggestion_given": "add index",
+    "feedback": "positive",
+    "user_note": null
+  },
+  {
+    "id": "fb_198863",
+    "timestamp": "2026-04-10T10:44:08.786114",
+    "query": "api test query",
+    "case_retrieved": "case_001",
+    "ab_variant": "A",
+    "suggestion_given": "add index",
+    "feedback": "positive",
+    "user_note": null
+  },
+  {
+    "id": "fb_1c5709",
+    "timestamp": "2026-04-10T11:43:41.622922",
+    "query": "api test query",
+    "case_retrieved": "case_001",
+    "ab_variant": "A",
+    "suggestion_given": "add index",
+    "feedback": "positive",
+    "user_note": null
+  },
+  {
+    "id": "fb_3de496",
+    "timestamp": "2026-04-10T12:17:49.158209",
+    "query": "api test query",
+    "case_retrieved": "case_001",
+    "ab_variant": "A",
+    "suggestion_given": "add index",
+    "feedback": "positive",
+    "user_note": null
+  },
+  {
+    "id": "fb_1f6a04",
+    "timestamp": "2026-04-10T12:25:40.143176",
+    "query": "api test query",
+    "case_retrieved": "case_001",
+    "ab_variant": "A",
+    "suggestion_given": "add index",
+    "feedback": "positive",
+    "user_note": null
+  }
+]

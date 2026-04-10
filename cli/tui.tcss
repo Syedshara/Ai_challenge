@@ -1,0 +1,19 @@
+#output {
+    height: 1fr;
+    scrollbar-gutter: stable;
+    padding: 1 2;
+}
+
+#query-input {
+    dock: bottom;
+    margin: 0 1;
+}
+
+Static {
+    margin: 0 0 1 0;
+}
+
+#welcome {
+    color: $text-muted;
+    padding: 1 2;
+}

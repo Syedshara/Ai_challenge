@@ -1,0 +1,471 @@
+[
+  {
+    "case_id": "case_001",
+    "title": "Full Table Scan on policy_data",
+    "category": "full_table_scan",
+    "query": "SELECT * FROM policy_data",
+    "execution_time_sec": 2469,
+    "frequency": "low",
+    "severity": "critical",
+    "context": {
+      "table_size_rows": 50000000,
+      "has_index": false,
+      "has_where_clause": false,
+      "uses_json_extract": false,
+      "join_count": 0,
+      "is_select_star": true
+    },
+    "problem": "Full table scan reads all 50 million rows without any filtering",
+    "root_cause": "No WHERE clause forces the database engine to perform a sequential scan of the entire policy_data table. SELECT * also fetches all columns including the heavy JSON data column, multiplying I/O cost. With 50M rows this results in 2469 seconds of execution time.",
+    "suggestions": [
+      "Add WHERE clause: SELECT policy_id, premium_amount, state, status FROM policy_data WHERE status = 'ACTIVE'",
+      "Replace SELECT * with specific columns to reduce I/O",
+      "Add LIMIT 100 OFFSET 0 for pagination",
+      "Create index: CREATE INDEX idx_policy_status ON policy_data(status)",
+      "Consider table partitioning by created_date or state"
+    ],
+    "tags": ["full-scan", "no-where", "select-star", "performance", "critical", "insurance"],
+    "confidence_weight": 1.0,
+    "embedding_text": "Full table scan SELECT star FROM policy_data no WHERE clause no filtering sequential scan fifty million rows all columns fetched heavy JSON data column very high execution time 2469 seconds critical performance issue insurance policy administration system needs WHERE clause index pagination"
+  },
+  {
+    "case_id": "case_002",
+    "title": "JSON Field Filtering Without Index",
+    "category": "json_filter",
+    "query": "SELECT * FROM policy_data WHERE JSON_EXTRACT(data, '$.policy.state') = 'CA'",
+    "execution_time_sec": 25,
+    "frequency": "medium",
+    "severity": "high",
+    "context": {
+      "table_size_rows": 50000000,
+      "has_index": false,
+      "has_where_clause": true,
+      "uses_json_extract": true,
+      "join_count": 0,
+      "is_select_star": true
+    },
+    "problem": "JSON_EXTRACT in WHERE clause cannot use standard B-tree indexes causing full table scan",
+    "root_cause": "MySQL cannot use a standard index when filtering on a JSON expression like JSON_EXTRACT(data, '$.policy.state'). Every row must be read and the JSON parsed to evaluate the WHERE condition. With 50M rows this results in 25 seconds even though a WHERE clause exists.",
+    "suggestions": [
+      "Add generated column: ALTER TABLE policy_data ADD COLUMN policy_state VARCHAR(2) GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(data, '$.policy.state'))) STORED",
+      "Index the generated column: CREATE INDEX idx_policy_state ON policy_data(policy_state)",
+      "Then query: SELECT policy_id, premium_amount, state FROM policy_data WHERE policy_state = 'CA' LIMIT 100",
+      "Alternatively normalize the JSON field into a proper column",
+      "Replace SELECT * with specific columns"
+    ],
+    "tags": ["json-extract", "no-index", "json-filter", "performance", "high", "insurance"],
+    "confidence_weight": 1.0,
+    "embedding_text": "JSON_EXTRACT WHERE clause no index full table scan JSON field filtering policy state California insurance data column slow 25 seconds generated column virtual column index needed JSON path extraction performance issue MySQL JSON indexing"
+  },
+  {
+    "case_id": "case_003",
+    "title": "Complex Multi-Join with JSON Processing",
+    "category": "complex_join",
+    "query": "SELECT p.policy_id, p.premium_amount, c.claim_amount, cfg.value FROM policy_data p JOIN claims_data c ON p.policy_id = c.policy_id JOIN config_table cfg ON cfg.key = 'rate_config' WHERE JSON_EXTRACT(p.data, '$.policy.state') = 'CA' AND c.status = 'OPEN'",
+    "execution_time_sec": 180,
+    "frequency": "medium",
+    "severity": "high",
+    "context": {
+      "table_size_rows": 50000000,
+      "has_index": false,
+      "has_where_clause": true,
+      "uses_json_extract": true,
+      "join_count": 2,
+      "is_select_star": false
+    },
+    "problem": "Multiple table JOINs combined with JSON field filtering creates multiplicative performance cost",
+    "root_cause": "Two JOINs with policy_data (50M rows) and claims_data (8M rows) combined with JSON_EXTRACT in WHERE clause. No index on JSON field means full scan of policy_data for each join. Config table join without LIMIT creates cartesian-like behavior. Total execution 180 seconds.",
+    "suggestions": [
+      "Add generated column + index for JSON state field as described in case_002",
+      "Add composite index on claims_data: CREATE INDEX idx_claims_policy_status ON claims_data(policy_id, status)",
+      "Move config lookup outside the query or use a subquery with LIMIT 1",
+      "Consider materializing the policy+claims join as a view for frequent queries",
+      "Use EXPLAIN to verify index usage after changes"
+    ],
+    "tags": ["complex-join", "json-extract", "multi-table", "performance", "high", "insurance"],
+    "confidence_weight": 1.0,
+    "embedding_text": "complex join multiple tables policy_data claims_data config_table JSON_EXTRACT WHERE clause no index two joins three tables slow 180 seconds high execution time insurance PAS materialized view composite index claims join optimization"
+  },
+  {
+    "case_id": "case_004",
+    "title": "High Frequency Config Table Lookup",
+    "category": "high_frequency",
+    "query": "SELECT * FROM config_table WHERE key = ?",
+    "execution_time_sec": 0.05,
+    "frequency": "very_high",
+    "severity": "medium",
+    "context": {
+      "table_size_rows": 500,
+      "has_index": true,
+      "has_where_clause": true,
+      "uses_json_extract": false,
+      "join_count": 0,
+      "is_select_star": true,
+      "daily_executions": 10000
+    },
+    "problem": "Fast individual query executed 10,000+ times per day causing excessive database connection overhead",
+    "root_cause": "The query itself is fast (0.05s, indexed lookup on 500 rows) but running 10,000+ times daily creates cumulative DB load, connection pool exhaustion, and 500 seconds of total DB time per day. Config data rarely changes making this a perfect cache candidate.",
+    "suggestions": [
+      "Add application-level cache (Redis or in-memory) with TTL of 60-300 seconds",
+      "Cache config table entirely on application startup since it has only 500 rows",
+      "Use connection pooling if not already configured (PgBouncer or HikariCP)",
+      "Consider a dedicated config service with event-driven invalidation",
+      "Replace SELECT * with SELECT key, value"
+    ],
+    "tags": ["high-frequency", "caching", "config", "performance", "medium", "insurance"],
+    "confidence_weight": 1.0,
+    "embedding_text": "high frequency query config table lookup 10000 times per day fast individual query slow cumulative database load connection overhead Redis cache application cache config data rarely changes cache candidate insurance PAS configuration driven system"
+  },
+  {
+    "case_id": "case_005",
+    "title": "Nested Subquery in WHERE Clause",
+    "category": "nested_subquery",
+    "query": "SELECT * FROM claims_data WHERE policy_id IN (SELECT policy_id FROM policy_data WHERE state = 'CA' AND status = 'ACTIVE')",
+    "execution_time_sec": 45,
+    "frequency": "medium",
+    "severity": "medium",
+    "context": {
+      "table_size_rows": 8000000,
+      "has_index": false,
+      "has_where_clause": true,
+      "uses_json_extract": false,
+      "join_count": 0,
+      "is_select_star": true
+    },
+    "problem": "Nested subquery in WHERE IN clause may execute as correlated subquery evaluating per-row",
+    "root_cause": "The IN (SELECT ...) subquery fetches all matching policy_ids from policy_data then passes them to claims_data. Without an index on policy_id in claims_data, this causes a full scan of 8M claim rows. The optimizer may also execute the subquery once per outer row in some MySQL versions resulting in 45 seconds.",
+    "suggestions": [
+      "Rewrite as JOIN: SELECT c.* FROM claims_data c JOIN policy_data p ON c.policy_id = p.policy_id WHERE p.state = 'CA' AND p.status = 'ACTIVE'",
+      "Add index on claims_data.policy_id: CREATE INDEX idx_claims_policy_id ON claims_data(policy_id)",
+      "Add composite index on policy_data: CREATE INDEX idx_policy_state_status ON policy_data(state, status)",
+      "Use EXISTS instead of IN for better optimization in some cases",
+      "Add LIMIT to bound result set"
+    ],
+    "tags": ["nested-subquery", "correlated", "join-rewrite", "performance", "medium", "insurance"],
+    "confidence_weight": 1.0,
+    "embedding_text": "nested subquery WHERE IN clause correlated subquery per row execution claims_data policy_data state active 45 seconds rewrite as JOIN index on foreign key insurance claims slow subquery optimization CTE common table expression"
+  },
+  {
+    "case_id": "case_006",
+    "title": "Aggregation Query with Multiple Joins",
+    "category": "aggregation",
+    "query": "SELECT p.state, COUNT(p.policy_id) as policy_count, SUM(c.claim_amount) as total_claims FROM policy_data p LEFT JOIN claims_data c ON p.policy_id = c.policy_id WHERE p.status = 'ACTIVE' GROUP BY p.state ORDER BY total_claims DESC",
+    "execution_time_sec": 120,
+    "frequency": "low",
+    "severity": "medium",
+    "context": {
+      "table_size_rows": 50000000,
+      "has_index": false,
+      "has_where_clause": true,
+      "uses_json_extract": false,
+      "join_count": 1,
+      "is_select_star": false
+    },
+    "problem": "Aggregation over 50M row table with JOIN causes full scan and large sort operation",
+    "root_cause": "GROUP BY state on 50M rows requires reading all active policies, joining with claims, aggregating per state, and sorting. Without an index on status, the WHERE clause cannot filter efficiently before the JOIN and aggregation. 120 seconds for a reporting query.",
+    "suggestions": [
+      "Add index on policy_data status: CREATE INDEX idx_policy_status ON policy_data(status)",
+      "Add composite index: CREATE INDEX idx_policy_status_state ON policy_data(status, state)",
+      "Consider a pre-aggregated summary table updated nightly for reporting",
+      "Use a read replica for analytical/reporting queries to avoid load on OLTP DB",
+      "Add LIMIT or filter by date range to scope the aggregation"
+    ],
+    "tags": ["aggregation", "group-by", "join", "reporting", "performance", "medium", "insurance"],
+    "confidence_weight": 1.0,
+    "embedding_text": "aggregation query GROUP BY state COUNT SUM claims policy_data left join 50 million rows reporting query slow 120 seconds index on status composite index summary table read replica OLTP analytical query insurance premiums claims reporting"
+  },
+  {
+    "case_id": "case_007",
+    "title": "Full Scan on Large Audit Log Table",
+    "category": "logging_table",
+    "query": "SELECT * FROM audit_log WHERE created_date > '2024-01-01'",
+    "execution_time_sec": 890,
+    "frequency": "low",
+    "severity": "critical",
+    "context": {
+      "table_size_rows": 200000000,
+      "has_index": false,
+      "has_where_clause": true,
+      "uses_json_extract": false,
+      "join_count": 0,
+      "is_select_star": true
+    },
+    "problem": "Full table scan on 200M row audit_log table despite date filter because no index exists on created_date",
+    "root_cause": "The audit_log table has 200 million rows (grows daily). Without an index on created_date, the WHERE clause cannot leverage an index and forces a sequential scan of all 200M rows to find records from 2024. SELECT * also fetches all columns for 200M rows. Results in 890 seconds.",
+    "suggestions": [
+      "Add index on created_date: CREATE INDEX idx_audit_created_date ON audit_log(created_date)",
+      "Consider table partitioning by month: PARTITION BY RANGE (YEAR(created_date) * 100 + MONTH(created_date))",
+      "Replace SELECT * with only needed columns",
+      "Add LIMIT for pagination: ... LIMIT 1000 OFFSET 0",
+      "Archive old audit records to separate table or cold storage",
+      "Use date range with both bounds: WHERE created_date BETWEEN '2024-01-01' AND '2024-12-31'"
+    ],
+    "tags": ["logging-table", "full-scan", "no-index", "date-filter", "critical", "audit", "insurance"],
+    "confidence_weight": 1.0,
+    "embedding_text": "audit log table full table scan 200 million rows no index on created_date date filter slow 890 seconds critical performance insurance compliance audit logging SELECT star all columns partition by month archive old data index on timestamp"
+  },
+  {
+    "case_id": "case_008",
+    "title": "Repeated Config Key Lookup Without Caching",
+    "category": "config_lookup",
+    "query": "SELECT value FROM config WHERE key = 'rate_engine_config'",
+    "execution_time_sec": 0.02,
+    "frequency": "very_high",
+    "severity": "low",
+    "context": {
+      "table_size_rows": 500,
+      "has_index": true,
+      "has_where_clause": true,
+      "uses_json_extract": false,
+      "join_count": 0,
+      "is_select_star": false,
+      "daily_executions": 50000
+    },
+    "problem": "Config value for rate engine fetched from DB 50,000 times per day — config never changes during business hours",
+    "root_cause": "The rate engine config is loaded from the database on every policy rating calculation. With 50,000 daily executions, this creates unnecessary DB load. The config value changes at most once per deployment. Total cumulative DB time: 1000 seconds per day for a static value.",
+    "suggestions": [
+      "Cache at application startup: load all config at boot, store in memory",
+      "Use Redis cache with long TTL (1 hour): config rarely changes",
+      "Implement config change events to invalidate cache when config is updated",
+      "Consider a dedicated configuration service separate from the main DB",
+      "At minimum use connection pooling to reduce overhead per lookup"
+    ],
+    "tags": ["config-lookup", "caching", "high-frequency", "static-data", "low", "insurance", "rate-engine"],
+    "confidence_weight": 1.0,
+    "embedding_text": "config table lookup key value store rate engine configuration static data 50000 daily executions unnecessary database hits caching Redis in-memory application startup cache insurance rating engine configuration driven system repeated lookup"
+  },
+  {
+    "case_id": "case_009",
+    "title": "Slow UPDATE Without Proper Index",
+    "category": "update_perf",
+    "query": "UPDATE policy_data SET status = 'EXPIRED' WHERE created_date < '2020-01-01' AND status = 'ACTIVE'",
+    "execution_time_sec": 310,
+    "frequency": "low",
+    "severity": "high",
+    "context": {
+      "table_size_rows": 50000000,
+      "has_index": false,
+      "has_where_clause": true,
+      "uses_json_extract": false,
+      "join_count": 0,
+      "is_select_star": false
+    },
+    "problem": "Bulk UPDATE touching millions of rows without index causes table lock and long execution",
+    "root_cause": "The UPDATE scans all 50M rows to find policies created before 2020 with ACTIVE status. No composite index on (created_date, status) forces a full table scan. Updating millions of rows also causes table-level locking in InnoDB if no row-level lock is possible, blocking all other writes for 310 seconds.",
+    "suggestions": [
+      "Add composite index: CREATE INDEX idx_policy_date_status ON policy_data(created_date, status)",
+      "Process in batches to avoid long locks: UPDATE policy_data SET status='EXPIRED' WHERE created_date < '2020-01-01' AND status='ACTIVE' LIMIT 1000 — repeat until 0 rows affected",
+      "Schedule during low-traffic hours",
+      "Use pt-online-schema-change for large updates without locking",
+      "Consider archiving old policies to a separate table instead of status update"
+    ],
+    "tags": ["update-perf", "bulk-update", "table-lock", "no-index", "high", "insurance", "batch"],
+    "confidence_weight": 1.0,
+    "embedding_text": "UPDATE policy_data status EXPIRED created_date old policies bulk update slow 310 seconds table lock no index composite index batch update avoid locking InnoDB row lock insurance policy expiry scheduled job performance"
+  },
+  {
+    "case_id": "case_010",
+    "title": "Latency Spike Anomaly — 1s to 50s",
+    "category": "anomaly_spike",
+    "query": "SELECT policy_id, premium_amount, state, status FROM policy_data WHERE status = 'ACTIVE' LIMIT 100",
+    "execution_time_sec": 50,
+    "frequency": "high",
+    "severity": "critical",
+    "context": {
+      "table_size_rows": 50000000,
+      "has_index": true,
+      "has_where_clause": true,
+      "uses_json_extract": false,
+      "join_count": 0,
+      "is_select_star": false,
+      "normal_latency_sec": 1,
+      "spike_latency_sec": 50
+    },
+    "problem": "Query that normally runs in 1 second spiked to 50 seconds — indicates system-level anomaly not query problem",
+    "root_cause": "The query itself is well-written (specific columns, indexed WHERE, LIMIT). A 50x latency spike indicates external causes: database lock contention from concurrent bulk UPDATE or DDL operation, I/O saturation from another process, memory pressure causing buffer pool eviction, or network partition. The query is not the problem — the environment is.",
+    "suggestions": [
+      "Check for blocking transactions: SELECT * FROM information_schema.INNODB_LOCKS",
+      "Look for long-running queries: SHOW PROCESSLIST",
+      "Check DB server I/O metrics (disk wait time, read/write throughput)",
+      "Review recent deployments or scheduled jobs that may have run concurrently",
+      "Set up query timeout alerts: if latency > 5x baseline trigger PagerDuty",
+      "Consider read replica for high-frequency reads to isolate from write contention"
+    ],
+    "tags": ["anomaly", "latency-spike", "lock-contention", "monitoring", "critical", "insurance", "investigation"],
+    "confidence_weight": 1.0,
+    "embedding_text": "latency spike anomaly query normally 1 second suddenly 50 seconds 50x increase lock contention blocking transaction I/O saturation memory pressure buffer pool eviction monitoring alert investigation insurance PAS query performance degradation sudden slowdown"
+  },
+  {
+    "case_id": "case_011",
+    "title": "Full Table Scan on salaries (2.8M rows)",
+    "category": "full_table_scan",
+    "query": "SELECT * FROM salaries",
+    "execution_time_sec": 3.8,
+    "frequency": "low",
+    "severity": "critical",
+    "context": {
+      "table_size_rows": 2844047,
+      "has_index": false,
+      "has_where_clause": false,
+      "uses_json_extract": false,
+      "join_count": 0,
+      "is_select_star": true
+    },
+    "problem": "Full table scan reads all 2.8 million salary rows without any filtering",
+    "root_cause": "No WHERE clause forces a sequential scan of all 2,844,047 rows in the salaries table. SELECT * fetches all columns (emp_no, salary, from_date, to_date) for every row. In an insurance PAS context this is the premium payment history — scanning all payments without date or employee filter is never needed for operational queries.",
+    "suggestions": [
+      "Add WHERE clause with date filter: SELECT emp_no, salary, from_date, to_date FROM salaries WHERE to_date > CURRENT_DATE",
+      "Replace SELECT * with specific columns: emp_no, salary, from_date, to_date",
+      "Add LIMIT 100 OFFSET 0 for pagination",
+      "Create index: CREATE INDEX idx_salaries_to_date ON salaries(to_date)",
+      "For monthly reports use date range: WHERE from_date >= '2024-01-01' AND to_date <= '2024-12-31'"
+    ],
+    "tags": ["full-scan", "no-where", "select-star", "salaries", "critical", "employees-db"],
+    "confidence_weight": 1.0,
+    "embedding_text": "Full table scan SELECT star FROM salaries no WHERE clause no filtering sequential scan 2844047 rows all columns fetched premium payment history employees salary table critical performance 3847ms slow query needs WHERE clause date filter to_date from_date index pagination insurance PAS live monitor"
+  },
+  {
+    "case_id": "case_012",
+    "title": "Unindexed Column Filter on employees first_name",
+    "category": "unindexed_filter",
+    "query": "SELECT * FROM employees WHERE first_name = 'Georgi'",
+    "execution_time_sec": 0.41,
+    "frequency": "high",
+    "severity": "high",
+    "context": {
+      "table_size_rows": 300024,
+      "has_index": false,
+      "has_where_clause": true,
+      "uses_json_extract": false,
+      "join_count": 0,
+      "is_select_star": true
+    },
+    "problem": "Filter on unindexed first_name column forces full scan of 300K policyholder records",
+    "root_cause": "MySQL cannot use an index for WHERE first_name = 'Georgi' because no index exists on the first_name column. All 300,024 employee (policyholder) rows must be read and compared. EXPLAIN shows type=ALL, key=NULL. Even at 412ms this becomes critical at high frequency — customer service lookups by name run hundreds of times per hour.",
+    "suggestions": [
+      "Add index on first_name: CREATE INDEX idx_emp_first_name ON employees(first_name)",
+      "For name search consider full-text index: CREATE FULLTEXT INDEX ft_emp_name ON employees(first_name, last_name)",
+      "Replace SELECT * with needed columns: SELECT emp_no, first_name, last_name, hire_date",
+      "Add LIMIT: ... LIMIT 100",
+      "Consider prefix index if full name index is too large: CREATE INDEX idx_first_name_prefix ON employees(first_name(10))"
+    ],
+    "tags": ["unindexed-filter", "full-scan", "employees", "first-name", "high", "employees-db"],
+    "confidence_weight": 1.0,
+    "embedding_text": "Unindexed column filter WHERE first_name Georgi employees table full table scan 300024 rows no index on first_name EXPLAIN type ALL key NULL 412ms slow policyholder directory lookup customer service search by name insurance CREATE INDEX first_name employees unindexed column filter high frequency"
+  },
+  {
+    "case_id": "case_013",
+    "title": "JSON_EXTRACT on employees metadata Column",
+    "category": "json_filter",
+    "query": "SELECT emp_no, first_name, last_name, metadata FROM employees WHERE JSON_EXTRACT(metadata, '$.hire_year') = 1986",
+    "execution_time_sec": 2.1,
+    "frequency": "low",
+    "severity": "high",
+    "context": {
+      "table_size_rows": 300024,
+      "has_index": false,
+      "has_where_clause": true,
+      "uses_json_extract": true,
+      "join_count": 0,
+      "is_select_star": false
+    },
+    "problem": "JSON_EXTRACT on metadata column prevents index use causing full scan of 300K rows",
+    "root_cause": "MySQL cannot use a B-tree index when the WHERE clause contains a function like JSON_EXTRACT(metadata, '$.hire_year'). Every row in the employees table must be read and the metadata JSON parsed to evaluate the condition. The metadata column stores hire_year, department, gender_code and tenure_years — compliance queries filtering by enrollment year trigger this pattern.",
+    "suggestions": [
+      "Add generated column: ALTER TABLE employees ADD COLUMN hire_year_gen SMALLINT GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.hire_year'))) STORED",
+      "Index the generated column: CREATE INDEX idx_emp_hire_year ON employees(hire_year_gen)",
+      "Rewrite query: SELECT emp_no, first_name, last_name FROM employees WHERE hire_year_gen = 1986 LIMIT 100",
+      "Alternatively use the existing hire_date column: WHERE YEAR(hire_date) = 1986",
+      "Index hire_date: CREATE INDEX idx_emp_hire_date ON employees(hire_date)"
+    ],
+    "tags": ["json-extract", "metadata", "no-index", "employees", "high", "employees-db", "compliance"],
+    "confidence_weight": 1.0,
+    "embedding_text": "JSON_EXTRACT metadata hire_year employees WHERE clause no index full table scan 300024 rows 2100ms slow compliance audit enrollment year filter generated column virtual column index needed JSON path extraction MySQL JSON indexing insurance policyholder metadata hire year compliance report"
+  },
+  {
+    "case_id": "case_014",
+    "title": "Complex 4-Table JOIN on employees Database",
+    "category": "complex_join",
+    "query": "SELECT e.emp_no, e.first_name, e.last_name, s.salary, t.title, d.dept_name FROM employees e JOIN salaries s ON e.emp_no = s.emp_no JOIN titles t ON e.emp_no = t.emp_no JOIN dept_emp de ON e.emp_no = de.emp_no JOIN departments d ON de.dept_no = d.dept_no WHERE s.salary > 80000",
+    "execution_time_sec": 8.5,
+    "frequency": "low",
+    "severity": "high",
+    "context": {
+      "table_size_rows": 2844047,
+      "has_index": true,
+      "has_where_clause": true,
+      "uses_json_extract": false,
+      "join_count": 4,
+      "is_select_star": false
+    },
+    "problem": "4-table JOIN across employees, salaries, titles, dept_emp without date range bounds produces massive intermediate result sets",
+    "root_cause": "The query joins employees (300K) with salaries (2.8M), titles (443K), and dept_emp (331K) without filtering on to_date. This means historical records are included — an employee appears multiple times in salaries and titles over their career. The cartesian-like expansion of rows across historical records before the WHERE salary > 80000 filter results in 8.5 seconds.",
+    "suggestions": [
+      "Add current-record filter to each join: JOIN salaries s ON e.emp_no = s.emp_no AND s.to_date = '9999-01-01'",
+      "Add: JOIN titles t ON e.emp_no = t.emp_no AND t.to_date = '9999-01-01'",
+      "Add: JOIN dept_emp de ON e.emp_no = de.emp_no AND de.to_date = '9999-01-01'",
+      "Create index on salaries(emp_no, to_date, salary) for the WHERE filter",
+      "Add LIMIT 100 to bound result set"
+    ],
+    "tags": ["complex-join", "4-table-join", "salaries", "employees", "titles", "high", "employees-db"],
+    "confidence_weight": 1.0,
+    "embedding_text": "complex join 4 tables employees salaries titles dept_emp departments WHERE salary 80000 no date range filter historical records 8500ms slow high value policy report management active records to_date current JOIN insurance PAS active high value policies report"
+  },
+  {
+    "case_id": "case_015",
+    "title": "Nested Subquery on salaries and employees",
+    "category": "nested_subquery",
+    "query": "SELECT * FROM salaries WHERE emp_no IN (SELECT emp_no FROM employees WHERE hire_date < '1990-01-01')",
+    "execution_time_sec": 4.2,
+    "frequency": "low",
+    "severity": "high",
+    "context": {
+      "table_size_rows": 2844047,
+      "has_index": false,
+      "has_where_clause": true,
+      "uses_json_extract": false,
+      "join_count": 0,
+      "is_select_star": true
+    },
+    "problem": "Nested IN subquery fetches all emp_no values for long-tenure employees then scans 2.8M salary rows",
+    "root_cause": "The subquery finds employees hired before 1990 and passes all their emp_no values to the outer query. The outer salaries table has 2.8M rows — without an index on emp_no for the IN lookup, a full scan occurs. SELECT * also fetches all salary history rows (each employee has multiple salary records). Actuarial team queries for long-tenure policyholder premium history trigger this pattern.",
+    "suggestions": [
+      "Rewrite as JOIN: SELECT s.* FROM salaries s JOIN employees e ON s.emp_no = e.emp_no WHERE e.hire_date < '1990-01-01'",
+      "Add index on employees hire_date: CREATE INDEX idx_emp_hire_date ON employees(hire_date)",
+      "Add date range on salaries to get current records only: AND s.to_date = '9999-01-01'",
+      "Replace SELECT * with specific columns: s.emp_no, s.salary, s.from_date, s.to_date",
+      "Add LIMIT 1000 to bound result"
+    ],
+    "tags": ["nested-subquery", "IN-clause", "salaries", "employees", "hire-date", "high", "employees-db"],
+    "confidence_weight": 1.0,
+    "embedding_text": "nested subquery WHERE IN clause salaries emp_no employees hire_date before 1990 long tenure 2844047 rows full scan 4200ms slow actuarial premium history correlated subquery rewrite as JOIN index hire_date insurance claims subquery analysis long-tenure policyholders"
+  },
+  {
+    "case_id": "case_016",
+    "title": "Fast Primary Key Lookup on employees",
+    "category": "healthy_query",
+    "query": "SELECT emp_no, first_name, last_name, hire_date FROM employees WHERE emp_no = 10001",
+    "execution_time_sec": 0.0004,
+    "frequency": "very_high",
+    "severity": "low",
+    "context": {
+      "table_size_rows": 300024,
+      "has_index": true,
+      "has_where_clause": true,
+      "uses_json_extract": false,
+      "join_count": 0,
+      "is_select_star": false
+    },
+    "problem": "No performance problem — this is a healthy query pattern",
+    "root_cause": "Primary key lookup uses the clustered index for a constant-time (type=const) row fetch. EXPLAIN shows key=PRIMARY, rows=1. This is the correct way to fetch a single policyholder record. Sub-millisecond response is expected and correct. No action needed.",
+    "suggestions": [
+      "This query is already optimal — no changes needed",
+      "Select only needed columns (already done here)",
+      "Use this pattern as a template for other single-record lookups",
+      "Ensure all single-record lookups use primary key or unique index"
+    ],
+    "tags": ["healthy-query", "pk-lookup", "employees", "fast", "low", "employees-db", "optimal"],
+    "confidence_weight": 1.0,
+    "embedding_text": "fast primary key lookup employees WHERE emp_no 10001 type const key PRIMARY rows 1 sub-millisecond healthy query optimal no performance issue single record lookup policyholder claims adjustor point lookup indexed primary key insurance PAS fast query no action needed"
+  }
+]

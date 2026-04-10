@@ -1,0 +1,67 @@
+{
+  "patterns": [
+    {
+      "id": "AP001",
+      "name": "SELECT_STAR",
+      "regex": "SELECT\\s+\\*",
+      "check": null,
+      "severity": "warning",
+      "message": "SELECT * fetches all columns including large JSON fields. Select only needed columns to reduce I/O.",
+      "fix": "Replace SELECT * with explicit column list: SELECT col1, col2, col3"
+    },
+    {
+      "id": "AP002",
+      "name": "NO_WHERE_CLAUSE",
+      "regex": null,
+      "check": "no_where",
+      "severity": "critical",
+      "message": "No WHERE clause — query will perform a full table scan reading every row.",
+      "fix": "Add WHERE clause with an indexed column to filter rows before scanning"
+    },
+    {
+      "id": "AP003",
+      "name": "JSON_EXTRACT_IN_WHERE",
+      "regex": "JSON_EXTRACT",
+      "check": null,
+      "severity": "high",
+      "message": "JSON_EXTRACT in WHERE clause cannot use standard B-tree indexes, causing full table scan.",
+      "fix": "Add a generated column with the extracted value and index it"
+    },
+    {
+      "id": "AP004",
+      "name": "NESTED_SUBQUERY",
+      "regex": "WHERE[\\s\\S]*\\(\\s*SELECT",
+      "check": null,
+      "severity": "medium",
+      "message": "Nested subquery in WHERE — may execute as correlated subquery evaluating once per outer row.",
+      "fix": "Rewrite as a JOIN or use a CTE (WITH clause) for better optimization"
+    },
+    {
+      "id": "AP005",
+      "name": "NO_LIMIT",
+      "regex": null,
+      "check": "no_limit",
+      "severity": "warning",
+      "message": "No LIMIT clause — query may return unbounded result set consuming excessive memory and network.",
+      "fix": "Add LIMIT 100 OFFSET 0 for pagination"
+    },
+    {
+      "id": "AP006",
+      "name": "CARTESIAN_JOIN",
+      "regex": null,
+      "check": "join_without_on",
+      "severity": "critical",
+      "message": "JOIN without ON clause produces a cartesian product multiplying row counts.",
+      "fix": "Add ON clause specifying the join condition between tables"
+    },
+    {
+      "id": "AP007",
+      "name": "UPDATE_WITHOUT_WHERE",
+      "regex": null,
+      "check": "update_no_where",
+      "severity": "critical",
+      "message": "UPDATE without WHERE clause will modify ALL rows in the table!",
+      "fix": "Add WHERE clause to scope the UPDATE to intended rows only"
+    }
+  ]
+}

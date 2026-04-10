@@ -1,0 +1,66 @@
+{
+  "policy_data": {
+    "columns": [
+      "policy_id INT PRIMARY KEY AUTO_INCREMENT",
+      "state VARCHAR(2) NOT NULL",
+      "premium_amount DECIMAL(10,2) NOT NULL",
+      "status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'",
+      "created_date DATE NOT NULL",
+      "data JSON"
+    ],
+    "row_count_estimate": 50000000,
+    "indexes": [
+      "PRIMARY KEY (policy_id)"
+    ],
+    "key_columns": ["policy_id", "premium_amount", "state", "status", "created_date"],
+    "safe_filter": "status = 'ACTIVE'"
+  },
+  "claims_data": {
+    "columns": [
+      "claim_id INT PRIMARY KEY AUTO_INCREMENT",
+      "policy_id INT NOT NULL",
+      "claim_amount DECIMAL(10,2) NOT NULL",
+      "claim_date DATE NOT NULL",
+      "status VARCHAR(20) NOT NULL DEFAULT 'OPEN'",
+      "description TEXT"
+    ],
+    "row_count_estimate": 8000000,
+    "indexes": [
+      "PRIMARY KEY (claim_id)"
+    ],
+    "key_columns": ["claim_id", "policy_id", "claim_amount", "claim_date", "status"],
+    "safe_filter": "status = 'OPEN'"
+  },
+  "config_table": {
+    "columns": [
+      "id INT PRIMARY KEY AUTO_INCREMENT",
+      "key VARCHAR(255) NOT NULL UNIQUE",
+      "value TEXT",
+      "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+    ],
+    "row_count_estimate": 500,
+    "indexes": [
+      "PRIMARY KEY (id)",
+      "UNIQUE KEY uq_config_key (key)"
+    ],
+    "key_columns": ["id", "key", "value"],
+    "safe_filter": null
+  },
+  "audit_log": {
+    "columns": [
+      "log_id BIGINT PRIMARY KEY AUTO_INCREMENT",
+      "entity_type VARCHAR(50) NOT NULL",
+      "entity_id INT NOT NULL",
+      "action VARCHAR(50) NOT NULL",
+      "changed_by VARCHAR(100)",
+      "created_date DATETIME NOT NULL",
+      "payload JSON"
+    ],
+    "row_count_estimate": 200000000,
+    "indexes": [
+      "PRIMARY KEY (log_id)"
+    ],
+    "key_columns": ["log_id", "entity_type", "entity_id", "action", "created_date"],
+    "safe_filter": "created_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
+  }
+}
