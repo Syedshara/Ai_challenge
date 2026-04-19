@@ -577,14 +577,3 @@ The embedding model (22M params) runs as a sidecar per consumer worker. The cros
 
 ---
 
-## AI Tools Used
-
-**Claude Code** was used throughout this project for architecture design, implementation, debugging, and iterative refinement.
-
-Specifically: the original pipeline architecture (intent → rule engine → RAG → rewriter), the hybrid retrieval design (dense + keyword + RRF), the anomaly detection ensemble approach, the ReAct agent loop structure, the monitoring SDK design, and the TUI. Code was generated, tested, debugged, and refined iteratively — not pasted in one shot.
-
-Significant problems discovered and solved during development:
-- The MySQL unbuffered cursor returns from `execute()` in <10ms regardless of table size because only 50 rows are initially buffered. The initial timing approach (measure `execute()` time) showed every query as fast. Solved by running EXPLAIN first and synthesizing timing from estimated row count × 2.7µs/row, calibrated against known slow queries.
-- RAG retrieval quality was poor (all 5 slow operations returned the same 3 irrelevant cases) because the retrieval query was "This query took 3847ms. Why is it slow?" — no SQL content for the model to match against. Fixed by including the actual SQL in the retrieval query, which brought retrieval accuracy from 0/5 to 5/5.
-- SSL certificate failures from HuggingFace Hub during testing. Solved with `TRANSFORMERS_OFFLINE=1` since models are already cached.
-- Thread safety in the Textual TUI — callbacks from background analysis threads must go through `call_from_thread()` or the TUI crashes silently. Found and fixed during live demo testing.
